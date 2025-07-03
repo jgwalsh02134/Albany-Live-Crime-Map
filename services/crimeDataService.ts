@@ -1,83 +1,96 @@
 import { CrimeEvent, CrimeType } from '../types';
-import { ALBANY_CENTER, ALL_CRIME_TYPES } from '../constants';
 
-const descriptions: Record<CrimeType, string[]> = {
-  [CrimeType.Theft]: ["Package stolen from porch.", "Shoplifting reported at local store.", "Wallet pickpocketed on bus.", "Bike stolen from rack."],
-  [CrimeType.Assault]: ["Minor altercation reported in park.", "Bar fight resulted in injuries.", "Domestic dispute escalated.", "Road rage incident reported."],
-  [CrimeType.Vandalism]: ["Graffiti found on public building.", "Car tires slashed overnight.", "Windows broken at a storefront.", "Mailbox damaged."],
-  [CrimeType.Burglary]: ["Residential break-in, electronics stolen.", "Garage broken into, tools missing.", "Attempted burglary at a commercial property."],
-  [CrimeType.Robbery]: ["Street robbery at knifepoint.", "Convenience store held up.", "Mugging reported in an alley.", "Armed robbery of a pedestrian."],
-  [CrimeType.MotorVehicleTheft]: ["Car stolen from a parking garage.", "Motorcycle theft reported from driveway.", "Attempted hot-wiring of a vehicle.", "Catalytic converter theft."],
+// The official Socrata API endpoint for APD Reported Crimes
+const API_ENDPOINT = 'https://data.albanyny.gov/resource/qq93-cnn2.json';
+// Socrata Query (SoQL) to get 200 incidents where a location exists.
+// The column for location data is `neighborhood_xy`.
+// The `$where` clause is URL-encoded to prevent "400 Bad Request" errors.
+const API_QUERY = `?$limit=200&$where=${encodeURIComponent('neighborhood_xy IS NOT NULL')}`;
+const FULL_API_URL = `${API_ENDPOINT}${API_QUERY}`;
+
+const SOURCE = {
+    name: 'data.albanyny.gov',
+    url: 'https://data.albanyny.gov/Public-Safety/APD-Reported-Crimes-by-Neighborhood/qq93-cnn2'
 };
 
-const DATA_SOURCES = [
-  // Tier 1 - Direct Datasets
-  { name: 'APD Reported Crimes', url: 'https://data.albanyny.gov/Public-Safety/APD-Reported-Crimes-by-Neighborhood/qq93-cnn2' },
-  { name: 'APD Taser Incidents', url: 'https://data.albanyny.gov/Public-Safety/APD-Officer-Taser-Incidents/hbdi-b99h' },
-  { name: 'APD Use of Force', url: 'https://data.albanyny.gov/d/na5h-ypn4' },
-  
-  // Tier 1 - General
-  { name: 'City of Albany Open Data', url: 'https://data.albanyny.gov/browse' },
-  { name: 'Nixle Alerts', url: 'https://local.nixle.com/city/ny/albany/'},
-  { name: 'Albany PD (X/Twitter)', url: 'https://x.com/albanypolice' },
-  { name: 'NYS DCJS Statistics', url: 'https://www.criminaljustice.ny.gov/crimnet/ojsa/stats.htm'},
-  { name: 'FBI Crime Data Explorer', url: 'https://cde.ucr.cjis.gov/'},
+/**
+ * Maps an offense description from the API to our internal CrimeType enum.
+ * This uses keyword matching to categorize various specific offenses.
+ * @param offense - The offense description string from the API.
+ * @returns The corresponding CrimeType.
+ */
+const mapOffenseToType = (offense: string): CrimeType => {
+    if (!offense) return CrimeType.Other;
+    const upperCaseOffense = offense.toUpperCase();
 
-  // Tier 2
-  { name: 'Times Union', url: 'https://www.timesunion.com/news/local/crime/' },
-  { name: 'WNYT NewsChannel 13', url: 'https://wnyt.com/' },
-  { name: 'CBS 6 Albany', url: 'https://www.cbs6albany.com/'},
-  { name: 'Broadcastify Scanner', url: 'https://www.broadcastify.com/listen/feed/336'},
-  { name: 'OpenMHz Archives', url: 'https://openmhz.com/system/albanycony' },
-
-  // Tier 3
-  { name: 'SpotCrime Albany', url: 'https://spotcrime.com/NY/Albany' },
-  { name: 'Community Crime Map', url: 'https://communitycrimemap.com/' },
-  { name: 'r/Albany Subreddit', url: 'https://www.reddit.com/r/Albany/' },
-  { name: 'Citizen App', url: 'https://citizen.com/' },
-  { name: 'Nextdoor Albany', url: 'https://nextdoor.com/city/albany--ny'}
-];
-
-const getRandomElement = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
-
-// Generate a random coordinate within a radius of a center point
-const generateRandomPoint = (center: [number, number], radius: number) => {
-  const [lat, lng] = center;
-  const r = radius / 111320; // Convert radius from meters to degrees
-
-  const u = Math.random();
-  const v = Math.random();
-  const w = r * Math.sqrt(u);
-  const t = 2 * Math.PI * v;
-  const x = w * Math.cos(t);
-  const y = w * Math.sin(t);
-
-  const newLat = lat + y;
-  const newLng = lng + x / Math.cos(lat * Math.PI / 180);
-  
-  return { lat: newLat, lng: newLng };
+    if (upperCaseOffense.includes('ROBBERY')) return CrimeType.Robbery;
+    if (upperCaseOffense.includes('BURGLARY')) return CrimeType.Burglary;
+    if ((upperCaseOffense.includes('VEHICLE') || upperCaseOffense.includes('AUTO')) && (upperCaseOffense.includes('THEFT') || upperCaseOffense.includes('LARCENY') || upperCaseOffense.includes('STOLEN'))) return CrimeType.MotorVehicleTheft;
+    if (upperCaseOffense.includes('LARCENY') || upperCaseOffense.includes('THEFT')) return CrimeType.Theft;
+    if (upperCaseOffense.includes('ASSAULT')) return CrimeType.Assault;
+    if (upperCaseOffense.includes('CRIMINAL MISCHIEF') || upperCaseOffense.includes('VANDALISM')) return CrimeType.Vandalism;
+    
+    return CrimeType.Other;
 };
 
-export const generateRandomCrime = (): CrimeEvent => {
-  const type = getRandomElement(ALL_CRIME_TYPES);
-  const location = generateRandomPoint(ALBANY_CENTER, 4000); // 4km radius
-  return {
-    id: `crime-${Date.now()}-${Math.random()}`,
-    type,
-    timestamp: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000), // Sometime in last week
-    location: location,
-    description: getRandomElement(descriptions[type]),
-    source: getRandomElement(DATA_SOURCES),
-  };
+/**
+ * Transforms a raw record from the Socrata API into our structured CrimeEvent type.
+ * @param record - A single crime incident record from the API.
+ * @returns A formatted CrimeEvent object, or null if the record is invalid.
+ */
+const mapApiRecordToCrimeEvent = (record: any): CrimeEvent | null => {
+    // Records must have a unique ID (`agency_case_no`) and a location with valid coordinates (`neighborhood_xy`).
+    if (!record.agency_case_no || !record.neighborhood_xy?.coordinates || record.neighborhood_xy.coordinates.length < 2) {
+        return null;
+    }
+
+    const crimeType = mapOffenseToType(record.offense_description);
+    const coordinates = record.neighborhood_xy.coordinates;
+
+    const lat = parseFloat(coordinates[1]);
+    const lng = parseFloat(coordinates[0]);
+
+    // Ensure coordinates are valid numbers
+    if (isNaN(lat) || isNaN(lng)) {
+        return null;
+    }
+
+    return {
+        id: record.agency_case_no,
+        type: crimeType,
+        timestamp: new Date(record.report_date),
+        location: { lat, lng },
+        address: record.address_or_block || 'Address not specified',
+        description: record.offense_description || 'No description provided.',
+        source: SOURCE,
+    };
 };
 
-export const fetchInitialCrimeData = (): Promise<CrimeEvent[]> => {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const data: CrimeEvent[] = Array.from({ length: 50 }, generateRandomCrime).sort(
-        (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
-      );
-      resolve(data);
-    }, 1500); // Simulate network delay
-  });
+/**
+ * Fetches the latest crime data from the City of Albany's Open Data Portal.
+ * @returns A promise that resolves to an array of CrimeEvent objects.
+ */
+export const fetchLiveCrimeData = async (): Promise<CrimeEvent[]> => {
+    try {
+        const response = await fetch(FULL_API_URL);
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`API request failed with status ${response.status}: ${errorBody}`);
+        }
+        const data = await response.json();
+        
+        if (!Array.isArray(data)) {
+            throw new Error('API response was not an array.');
+        }
+
+        const mappedData = data
+            .map(mapApiRecordToCrimeEvent)
+            .filter((event): event is CrimeEvent => event !== null); // Filter out any null (invalid) records
+
+        return mappedData;
+    } catch (error) {
+        console.error("Error fetching or parsing live crime data:", error);
+        // Re-throw the error to be handled by the calling component
+        throw error;
+    }
 };

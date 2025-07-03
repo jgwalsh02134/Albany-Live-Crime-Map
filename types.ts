@@ -1,4 +1,3 @@
-
 export enum CrimeType {
   Theft = 'Theft',
   Assault = 'Assault',
@@ -6,6 +5,7 @@ export enum CrimeType {
   Burglary = 'Burglary',
   Robbery = 'Robbery',
   MotorVehicleTheft = 'Motor Vehicle Theft',
+  Other = 'Other',
 }
 
 export interface CrimeEvent {
@@ -16,6 +16,7 @@ export interface CrimeEvent {
     lat: number;
     lng: number;
   };
+  address: string;
   description: string;
   source?: {
     name: string;
@@ -27,4 +28,25 @@ export interface AiSummary {
     summary: string;
     trends: string[];
     safetyTips: string[];
+}
+
+export interface ScannerIncident {
+  time: string;
+  type: string;
+  location: string;
+  units: string;
+  details: string;
+  status: string;
+  confidence: number;
+}
+
+export interface RssIncident {
+  source: string;
+  title: string;
+  summary: string;
+  type: string;
+  time: string;
+  location: string | null;
+  link: string;
+  confidence: number;
 }
