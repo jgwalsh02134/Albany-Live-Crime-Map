@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { CrimeEvent, AiSummary, ScannerIncident, RssIncident } from '../types';
 
@@ -295,10 +294,10 @@ Always preserve:
 Respond in plain English. Do not return JSON or structured formatting unless asked.
 
 Example input:
-“Car 214—code 3 to Judson n Lexington, rpt of male waving firearm—caller uncooperative”
+"Car 214—code 3 to Judson n Lexington, rpt of male waving firearm—caller uncooperative"
 
 Example output:
-“Unit Car 214 responded Code 3 to Judson Avenue and Lexington Avenue for reports of a male waving a firearm. The caller was uncooperative.”
+"Unit Car 214 responded Code 3 to Judson Avenue and Lexington Avenue for reports of a male waving a firearm. The caller was uncooperative."
 
 ---
 RAW SCANNER TEXT TO TRANSCRIBE:
