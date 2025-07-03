@@ -1,9 +1,8 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { CrimeEvent, AiSummary, ScannerIncident, RssIncident } from '../types';
 
 // Create a single, shared AI client instance to be reused by all functions.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
 const formatCrimesForPrompt = (crimes: CrimeEvent[]): string => {
     return JSON.stringify(crimes.map(c => ({
