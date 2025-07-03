@@ -49,9 +49,6 @@ export const getCrimeSummary = async (crimes: CrimeEvent[]): Promise<AiSummary> 
             },
         });
         
-        if (!response.text) {
-            throw new Error("AI response did not contain text.");
-        }
         let jsonStr = response.text.trim();
         const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
         const match = jsonStr.match(fenceRegex);
@@ -314,15 +311,12 @@ ${rawText}
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash-preview-04-17",
             contents: prompt,
+            config: {
+                temperature: 0.1,
+            },
         });
         
-        if (!response.text) {
-            throw new Error("AI response did not contain text for transcription.");
-        }
         // No JSON parsing needed for this function
-        return response.text.trim();
-
-    } catch (error) {
         return response.text.trim();
 
     } catch (error) {
