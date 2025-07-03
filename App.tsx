@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import MapComponent from './components/MapComponent';
 import Sidebar from './components/Sidebar';
 import { fetchLiveCrimeData } from './services/crimeDataService';
-import { getCrimeSummary, getScannerSummary, getRssSummary } from './services/geminiService';
+import { getCrimeSummary, getScannerSummary, getRssSummary, getTranscription } from './services/geminiService';
 import { CrimeEvent, CrimeType, AiSummary, ScannerIncident, RssIncident } from './types';
 import { ALL_CRIME_TYPES, ALBANY_CENTER, INITIAL_ZOOM } from './constants';
 import { AlertTriangle } from 'lucide-react';
@@ -26,6 +26,11 @@ const App: React.FC = () => {
   const [rssSummary, setRssSummary] = useState<RssIncident[] | null>(null);
   const [isRssLoading, setIsRssLoading] = useState(false);
   const [rssError, setRssError] = useState<string | null>(null);
+
+  // State for Transcription Tool
+  const [transcriptionResult, setTranscriptionResult] = useState<string | null>(null);
+  const [isTranscriptionLoading, setIsTranscriptionLoading] = useState(false);
+  const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
 
 
   const loadCrimeData = useCallback(async () => {
@@ -91,12 +96,13 @@ const App: React.FC = () => {
     }
   }, [crimeData]);
 
-  const handleGenerateScannerSummary = useCallback(async () => {
+  const handleGenerateScannerSummary = useCallback(async (text: string) => {
+    if (!text.trim()) return;
     setIsScannerLoading(true);
     setScannerError(null);
     setScannerSummary(null);
     try {
-        const summary = await getScannerSummary();
+        const summary = await getScannerSummary(text);
         setScannerSummary(summary);
     } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "An unknown error occurred with the scanner analysis.";
@@ -120,6 +126,23 @@ const App: React.FC = () => {
       console.error(err);
     } finally {
       setIsRssLoading(false);
+    }
+  }, []);
+
+  const handleGenerateTranscription = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    setIsTranscriptionLoading(true);
+    setTranscriptionError(null);
+    setTranscriptionResult(null);
+    try {
+        const result = await getTranscription(text);
+        setTranscriptionResult(result);
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "An unknown error occurred with the transcription service.";
+        setTranscriptionError(`Transcription failed: ${errorMessage}`);
+        console.error(err);
+    } finally {
+        setIsTranscriptionLoading(false);
     }
   }, []);
 
@@ -177,6 +200,10 @@ const App: React.FC = () => {
         isRssLoading={isRssLoading}
         rssSummary={rssSummary}
         rssError={rssError}
+        onGenerateTranscription={handleGenerateTranscription}
+        isTranscriptionLoading={isTranscriptionLoading}
+        transcriptionResult={transcriptionResult}
+        transcriptionError={transcriptionError}
       />
       {renderContent()}
     </div>

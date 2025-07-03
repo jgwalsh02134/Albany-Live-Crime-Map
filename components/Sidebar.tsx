@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { CrimeType, AiSummary, ScannerIncident, RssIncident } from '../types';
 import { ALL_CRIME_TYPES, CRIME_TYPE_DETAILS } from '../constants';
-import { ChevronLeft, ChevronRight, Activity, Filter, Info, BrainCircuit, AlertTriangle, CheckCircle, BarChart, Database, Radio, Rss, BookText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Activity, Filter, Info, BrainCircuit, AlertTriangle, CheckCircle, BarChart, Database, Radio, Rss, BookText, MessageSquareQuote } from 'lucide-react';
 import ScannerSummary from './ScannerSummary';
 import RssSummary from './RssSummary';
+import TranscriptionTool from './TranscriptionTool';
 
 interface SidebarProps {
   filteredTypes: Set<CrimeType>;
@@ -15,7 +16,7 @@ interface SidebarProps {
   isAiLoading: boolean;
   aiSummary: AiSummary | null;
   error: string | null;
-  onGenerateScannerSummary: () => void;
+  onGenerateScannerSummary: (text: string) => void;
   isScannerLoading: boolean;
   scannerSummary: ScannerIncident[] | null;
   scannerError: string | null;
@@ -23,17 +24,11 @@ interface SidebarProps {
   isRssLoading: boolean;
   rssSummary: RssIncident[] | null;
   rssError: string | null;
+  onGenerateTranscription: (text: string) => void;
+  isTranscriptionLoading: boolean;
+  transcriptionResult: string | null;
+  transcriptionError: string | null;
 }
-
-const ApiKeyWarning: React.FC = () => (
-    <div className="flex items-start p-2 mb-3 text-xs text-amber-800 bg-amber-100 border border-amber-200 rounded-lg">
-        <AlertTriangle size={24} className="mr-2 flex-shrink-0 text-amber-500" />
-        <div>
-            <span className="font-bold">Demo Only:</span> In a production application, API keys should be handled on a secure backend server, not exposed in the frontend code.
-        </div>
-    </div>
-);
-
 
 const Sidebar: React.FC<SidebarProps> = ({
   filteredTypes,
@@ -52,6 +47,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   isRssLoading,
   rssSummary,
   rssError,
+  onGenerateTranscription,
+  isTranscriptionLoading,
+  transcriptionResult,
+  transcriptionError,
 }) => {
   const [isOpen, setIsOpen] = useState(true);
 
@@ -124,7 +123,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div>
             <h2 className="text-xl font-semibold mb-3 flex items-center"><BrainCircuit className="mr-2" size={20} /> AI Incident Analysis</h2>
             <div className="p-4 bg-white rounded-lg border border-gray-200 space-y-4">
-               <ApiKeyWarning />
               <p className="text-sm text-gray-500">Get an AI-generated summary of the latest 50 incidents from the live data feed.</p>
               <button
                 onClick={onGenerateSummary}
@@ -169,8 +167,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div>
             <h2 className="text-xl font-semibold mb-3 flex items-center"><BookText className="mr-2" size={20} /> RSS Feed Analysis</h2>
             <div className="p-4 bg-white rounded-lg border border-gray-200 space-y-4">
-               <ApiKeyWarning />
-              <p className="text-sm text-gray-500">Analyze a simulated batch of RSS news feeds for public safety events.</p>
+              <p className="text-sm text-gray-500">Fetches and analyzes live news feeds for public safety events.</p>
               <button
                 onClick={onGenerateRssSummary}
                 disabled={isRssLoading}
@@ -198,28 +195,26 @@ const Sidebar: React.FC<SidebarProps> = ({
            <div>
             <h2 className="text-xl font-semibold mb-3 flex items-center"><Rss className="mr-2" size={20} /> Scanner Analysis</h2>
             <div className="p-4 bg-white rounded-lg border border-gray-200 space-y-4">
-                <ApiKeyWarning />
-              <p className="text-sm text-gray-500">Analyze mock scanner traffic to find the most significant recent calls.</p>
-              <button
-                onClick={onGenerateScannerSummary}
-                disabled={isScannerLoading}
-                className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:bg-cyan-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
-              >
-                {isScannerLoading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Analyzing...
-                  </>
-                ) : 'Analyze Scanner Traffic'}
-              </button>
+              <p className="text-sm text-gray-500">Paste scanner transcriptions below to find the most significant recent calls.</p>
                <ScannerSummary 
                 incidents={scannerSummary}
                 isLoading={isScannerLoading}
                 error={scannerError}
+                onAnalyze={onGenerateScannerSummary}
               />
+            </div>
+          </div>
+          
+          {/* Scanner Transcription Tool */}
+          <div>
+            <h2 className="text-xl font-semibold mb-3 flex items-center"><MessageSquareQuote className="mr-2" size={20} /> Scanner Transcription Tool</h2>
+            <div className="p-4 bg-white rounded-lg border border-gray-200">
+                <TranscriptionTool 
+                    onTranscribe={onGenerateTranscription}
+                    isLoading={isTranscriptionLoading}
+                    result={transcriptionResult}
+                    error={transcriptionError}
+                />
             </div>
           </div>
 

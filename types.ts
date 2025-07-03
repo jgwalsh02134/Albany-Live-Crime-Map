@@ -35,8 +35,7 @@ export interface ScannerIncident {
   type: string;
   location: string;
   units: string;
-  details: string;
-  status: string;
+  summary: string; // Renamed from 'details'
   confidence: number;
 }
 
