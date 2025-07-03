@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import MapComponent from './components/MapComponent';
 import Sidebar from './components/Sidebar';
-import ApiKeyModal from './components/ApiKeyModal';
 import { fetchInitialCrimeData, generateRandomCrime } from './services/crimeDataService';
 import { getCrimeSummary } from './services/geminiService';
 import { CrimeEvent, CrimeType, AiSummary } from './types';
@@ -16,8 +15,6 @@ const App: React.FC = () => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiSummary, setAiSummary] = useState<AiSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState<string | null>(() => sessionStorage.getItem('gemini-api-key'));
-  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -43,15 +40,6 @@ const App: React.FC = () => {
     }
     return () => clearInterval(intervalId);
   }, [isLive]);
-  
-  const handleSaveApiKey = (key: string) => {
-    if (key.trim()) {
-      sessionStorage.setItem('gemini-api-key', key);
-      setApiKey(key);
-      setIsApiKeyModalOpen(false);
-      setError(null);
-    }
-  };
 
   const handleFilterChange = (type: CrimeType) => {
     setFilteredTypes(prev => {
@@ -70,17 +58,11 @@ const App: React.FC = () => {
   };
 
   const handleGenerateSummary = useCallback(async () => {
-    if (!apiKey) {
-      setError("Please set your Gemini API Key before generating a summary.");
-      setIsApiKeyModalOpen(true);
-      return;
-    }
-
     setIsAiLoading(true);
     setError(null);
     setAiSummary(null);
     try {
-      const summary = await getCrimeSummary(apiKey, crimeData.slice(0, 50)); // Summarize latest 50
+      const summary = await getCrimeSummary(crimeData.slice(0, 50)); // Summarize latest 50
       setAiSummary(summary);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unknown error occurred with the AI summary.";
@@ -89,7 +71,7 @@ const App: React.FC = () => {
     } finally {
       setIsAiLoading(false);
     }
-  }, [crimeData, apiKey]);
+  }, [crimeData]);
 
   const displayedCrimes = useMemo(() => {
     return crimeData.filter(crime => filteredTypes.has(crime.type));
@@ -97,11 +79,6 @@ const App: React.FC = () => {
 
   return (
     <div className="relative h-screen w-screen bg-gray-900 text-white">
-       <ApiKeyModal
-        isOpen={isApiKeyModalOpen}
-        onSave={handleSaveApiKey}
-        onClose={() => setIsApiKeyModalOpen(false)}
-      />
       <Sidebar
         filteredTypes={filteredTypes}
         onFilterChange={handleFilterChange}
@@ -111,8 +88,6 @@ const App: React.FC = () => {
         isAiLoading={isAiLoading}
         aiSummary={aiSummary}
         error={error}
-        isApiKeySet={!!apiKey}
-        onSetApiKey={() => setIsApiKeyModalOpen(true)}
       />
       {isLoading ? (
         <div className="flex h-full w-full items-center justify-center bg-gray-900">

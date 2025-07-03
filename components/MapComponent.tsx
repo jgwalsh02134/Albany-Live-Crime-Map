@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { CrimeEvent } from '../types';
 import { CRIME_TYPE_DETAILS } from '../constants';
-import { Link } from 'lucide-react';
+import { Link, Clock } from 'lucide-react';
 
 interface MapComponentProps {
   center: [number, number];
@@ -41,12 +40,23 @@ const MapComponent: React.FC<MapComponentProps> = ({ center, zoom, crimes }) => 
         return (
           <Marker key={crime.id} position={[crime.location.lat, crime.location.lng]} icon={icon}>
             <Popup>
-              <div className="p-1">
-                <h3 className="font-bold text-lg mb-1" style={{color: iconColor}}>{crime.type}</h3>
-                <p className="text-sm text-gray-300 mb-2">{crime.description}</p>
-                <p className="text-xs text-gray-400 mb-2">
-                  {crime.timestamp.toLocaleString()}
-                </p>
+              <div className="p-1 w-64">
+                <h3 className="font-bold text-lg mb-2" style={{color: iconColor}}>{crime.type}</h3>
+                <p className="text-sm text-gray-300 mb-3">{crime.description}</p>
+                
+                <div className="text-xs text-gray-400 mb-3 space-y-1">
+                   <div className="flex items-center">
+                    <Clock size={12} className="mr-2 flex-shrink-0" />
+                    <span className="font-semibold">Reported:</span>
+                    <span className="font-mono text-gray-200 ml-auto">{crime.timestamp.toLocaleString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).replace(',', '')}</span>
+                  </div>
+                   <div className="flex items-center">
+                    <Clock size={12} className="mr-2 flex-shrink-0 text-green-400" />
+                    <span className="font-semibold">Current:</span>
+                    <span className="font-mono text-gray-200 ml-auto">{new Date().toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit', hourCycle: 'h23'})}</span>
+                  </div>
+                </div>
+
                 {crime.source && (
                   <div className="text-xs text-gray-400 border-t border-gray-600 pt-2">
                     <a

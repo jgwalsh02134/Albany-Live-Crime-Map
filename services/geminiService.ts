@@ -11,12 +11,8 @@ const formatCrimesForPrompt = (crimes: CrimeEvent[]): string => {
     })));
 };
 
-export const getCrimeSummary = async (apiKey: string, crimes: CrimeEvent[]): Promise<AiSummary> => {
-    if (!apiKey) {
-        throw new Error("Gemini API key not provided.");
-    }
-    
-    const ai = new GoogleGenAI({ apiKey });
+export const getCrimeSummary = async (crimes: CrimeEvent[]): Promise<AiSummary> => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     if (crimes.length === 0) {
         return {
@@ -70,9 +66,8 @@ export const getCrimeSummary = async (apiKey: string, crimes: CrimeEvent[]): Pro
     } catch (error) {
         console.error("Error generating AI summary:", error);
         if (error instanceof Error) {
-            // Check for specific API key related errors if possible
-            if (error.message.includes('API_KEY_INVALID') || error.message.includes('permission')) {
-                 throw new Error(`The provided API Key is invalid or doesn't have permissions.`);
+            if (error.message.includes('API_KEY')) {
+                 throw new Error(`The API Key is invalid or missing permissions. Please check environment configuration.`);
             }
             throw new Error(`AI service failed: ${error.message}`);
         }

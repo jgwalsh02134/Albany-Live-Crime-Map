@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { CrimeType, AiSummary } from '../types';
 import { ALL_CRIME_TYPES, CRIME_TYPE_DETAILS } from '../constants';
-import { ChevronLeft, ChevronRight, Activity, Filter, Info, BrainCircuit, AlertTriangle, CheckCircle, BarChart, Database, KeyRound } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Activity, Filter, Info, BrainCircuit, AlertTriangle, CheckCircle, BarChart, Database } from 'lucide-react';
 
 interface SidebarProps {
   filteredTypes: Set<CrimeType>;
@@ -13,8 +12,6 @@ interface SidebarProps {
   isAiLoading: boolean;
   aiSummary: AiSummary | null;
   error: string | null;
-  isApiKeySet: boolean;
-  onSetApiKey: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -26,8 +23,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   isAiLoading,
   aiSummary,
   error,
-  isApiKeySet,
-  onSetApiKey,
 }) => {
   const [isOpen, setIsOpen] = useState(true);
 
@@ -64,6 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               </label>
               <button
                 onClick={onToggleLive}
+                id="liveToggle"
                 className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${
                   isLive ? 'bg-red-600' : 'bg-gray-600'
                 }`}
@@ -74,14 +70,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                 />
               </button>
             </div>
-             <div className="flex items-center justify-between">
-               <label className="font-bold text-lg flex items-center">
-                 <KeyRound className="mr-2" size={20} /> API Key
-               </label>
-               <button onClick={onSetApiKey} className="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-md transition-colors">
-                  {isApiKeySet ? 'Update Key' : 'Set Key'}
-               </button>
-             </div>
           </div>
           
           {/* Filters */}
@@ -110,7 +98,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <p className="text-sm text-gray-400">Get an AI-generated summary of the latest 50 incidents.</p>
               <button
                 onClick={onGenerateSummary}
-                disabled={isAiLoading || !isApiKeySet}
+                disabled={isAiLoading}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-900 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
               >
                 {isAiLoading ? (
@@ -123,7 +111,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                   </>
                 ) : 'Generate Summary'}
               </button>
-              {!isApiKeySet && <p className="text-xs text-center text-yellow-400">An API key is required to generate summaries.</p>}
               {error && <div className="p-3 bg-red-900/50 border border-red-700 rounded-lg text-sm flex items-start"><AlertTriangle className="mr-2 mt-0.5 flex-shrink-0" size={16}/>{error}</div>}
               {aiSummary && (
                 <div className="space-y-4 pt-2">
@@ -151,41 +138,48 @@ const Sidebar: React.FC<SidebarProps> = ({
           {/* Data Sources */}
           <div>
             <h2 className="text-xl font-semibold mb-3 flex items-center"><Database className="mr-2" size={20} /> Data Sources</h2>
-            <div className="p-4 bg-gray-800 rounded-lg space-y-2 text-sm">
+            <div className="p-4 bg-gray-800 rounded-lg space-y-3 text-sm">
                 
                 <div>
-                    <h3 className="font-bold text-gray-300">Tier 1 – Official Government &amp; Law Enforcement</h3>
-                    <p className="text-xs text-gray-500 mb-2">(High reliability, validated)</p>
+                    <h3 className="font-bold text-gray-300">Tier 1 – Official &amp; Government</h3>
+                    <p className="text-xs text-gray-500 mb-2">(High reliability, validated data)</p>
                     <ul className="list-disc list-inside space-y-1 text-gray-400">
-                        <li><a href="https://data.albanyny.gov" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">City of Albany Open Data Portal</a></li>
-                        <li><a href="https://x.com/albanypolice" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Albany Police Department (X)</a></li>
-                        <li><a href="https://www.facebook.com/AlbanyNYPolice/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Albany Police Department (Facebook)</a></li>
-                        <li><a href="https://www.nyspnews.com/category/troop-g.htm" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">NY State Police Troop G Newsroom</a></li>
+                        <li><a href="https://data.albanyny.gov/browse" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">City of Albany Open Data</a></li>
+                        <li><a href="https://local.nixle.com/city/ny/albany/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Nixle Police Alerts</a></li>
                         <li><a href="https://www.criminaljustice.ny.gov/crimnet/ojsa/stats.htm" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">NYS DCJS Crime Statistics</a></li>
-                        <li><a href="https://www.facebook.com/albanycountysheriff/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Albany County Sheriff’s Office</a></li>
+                        <li><a href="https://data.ny.gov/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">NYS Open Data</a></li>
+                        <li><a href="https://cde.ucr.cjis.gov/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">FBI Crime Data Explorer (CDE)</a></li>
+                        <li><a href="https://hub.arcgis.com/maps/albanyny-GIS::neighborhood-associations-public-web-map/about" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Albany County GIS Hub</a></li>
+                        <li><a href="https://www.albanyny.gov/348/Albany-Police" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Albany Police Department</a></li>
+                        <li><a href="https://x.com/albanypolice" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Albany PD (X/Twitter)</a></li>
+                         <li><a href="https://www.albanyny.gov/rss.aspx" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">City of Albany RSS Feeds</a></li>
                     </ul>
                 </div>
 
                 <div className="pt-2">
-                    <h3 className="font-bold text-gray-300">Tier 2 – Local &amp; Regional News Media</h3>
-                    <p className="text-xs text-gray-500 mb-2">(Verified Reporting)</p>
+                    <h3 className="font-bold text-gray-300">Tier 2 – News Media &amp; Scanners</h3>
+                    <p className="text-xs text-gray-500 mb-2">(Verified reporting and live feeds)</p>
                     <ul className="list-disc list-inside space-y-1 text-gray-400">
-                        <li><a href="https://www.timesunion.com/news/local/crime/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Times Union – Crime Reporting</a></li>
+                        <li><a href="https://www.timesunion.com/news/local/crime/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Times Union – Crime</a></li>
                         <li><a href="https://wnyt.com/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">NewsChannel 13 (WNYT)</a></li>
                         <li><a href="https://www.cbs6albany.com/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">WRGB CBS 6</a></li>
                         <li><a href="https://www.news10.com/news/crime/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">WTEN ABC 10 – Crime</a></li>
-                        <li><a href="https://spectrumlocalnews.com/nys/capital-region" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Spectrum News 1 Capital Region</a></li>
+                        <li><a href="https://spectrumlocalnews.com/nys/capital-region" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Spectrum News 1</a></li>
+                        <li><a href="https://www.broadcastify.com/listen/feed/336" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Broadcastify Scanner (Albany)</a></li>
+                        <li><a href="https://openmhz.com/system/albanycony" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">OpenMHz Radio Archives</a></li>
                     </ul>
                 </div>
 
                 <div className="pt-2">
-                    <h3 className="font-bold text-gray-300">Tier 3 – Community-Based &amp; Crowdsourced</h3>
-                    <p className="text-xs text-gray-500 mb-2">(Needs Validation)</p>
+                    <h3 className="font-bold text-gray-300">Tier 3 – Community &amp; Crowdsourced</h3>
+                    <p className="text-xs text-gray-500 mb-2">(User-generated, may need validation)</p>
                     <ul className="list-disc list-inside space-y-1 text-gray-400">
+                        <li><a href="https://spotcrime.com/NY/Albany" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">SpotCrime Albany</a></li>
+                        <li><a href="https://www.crimemapping.com/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">CrimeMapping.com</a></li>
+                        <li><a href="https://communitycrimemap.com/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">LexisNexis Community Crime Map</a></li>
                         <li><a href="https://www.reddit.com/r/Albany/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">r/Albany Subreddit</a></li>
-                        <li><a href="https://nextdoor.com/neighborhood/albany--albany--ny/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Nextdoor Albany</a></li>
+                        <li><a href="https://nextdoor.com/city/albany--ny" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Nextdoor Albany</a></li>
                         <li><a href="https://citizen.com/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Citizen App</a></li>
-                        <li>X keyword monitoring (e.g., "Albany NY shooting")</li>
                     </ul>
                 </div>
 
