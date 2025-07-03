@@ -1,8 +1,32 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI, GenerateContentResult } from "@google/generative-ai";
 import { CrimeEvent, AiSummary, ScannerIncident, RssIncident } from '../types';
 
+// IMPORTANT: This key is exposed client-side. In a production environment,
+// it is strongly recommended to use a backend proxy to handle AI requests
+// securely and avoid exposing your API key.
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+if (!apiKey) {
+    throw new Error("VITE_GEMINI_API_KEY is not set. Please add it to your .env file.");
+}
+
 // Create a single, shared AI client instance to be reused by all functions.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const genAI = new GoogleGenerativeAI(apiKey);
+
+const getTextFromResponse = (response: GenerateContentResult): string => {
+    const { candidates } = response.response;
+    if (candidates && candidates.length > 0) {
+        const candidate = candidates[0];
+        if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
+            const part = candidate.content.parts[0];
+            if ('text' in part && typeof part.text === 'string') {
+                return part.text;
+            }
+        }
+    }
+    throw new Error("Invalid AI response structure.");
+};
+
 
 const formatCrimesForPrompt = (crimes: CrimeEvent[]): string => {
     return JSON.stringify(crimes.map(c => ({
@@ -39,16 +63,10 @@ export const getCrimeSummary = async (crimes: CrimeEvent[]): Promise<AiSummary> 
     `;
 
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-preview-04-17",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                temperature: 0.5,
-            },
-        });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        const result = await model.generateContent(prompt);
         
-        let jsonStr = response.text.trim();
+        let jsonStr = getTextFromResponse(result).trim();
         const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
         const match = jsonStr.match(fenceRegex);
         if (match && match[2]) {
@@ -67,8 +85,8 @@ export const getCrimeSummary = async (crimes: CrimeEvent[]): Promise<AiSummary> 
     } catch (error) {
         console.error("Error generating AI summary:", error);
         if (error instanceof Error) {
-            if (error.message.includes('API_KEY')) {
-                 throw new Error(`The API Key is invalid or missing permissions. Please check environment configuration.`);
+            if (error.message.includes('API key not valid')) {
+                 throw new Error(`The Gemini API Key is invalid or missing permissions. Please check your .env file and Google AI settings.`);
             }
             throw new Error(`AI service failed: ${error.message}`);
         }
@@ -119,16 +137,10 @@ export const getScannerSummary = async (transcriptions: string): Promise<Scanner
     const analysisPromises = lines.map(async (line): Promise<ScannerIncident | null> => {
         const prompt = buildScannerPrompt(line.trim());
         try {
-            const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash-preview-04-17",
-                contents: prompt,
-                config: {
-                    responseMimeType: "application/json",
-                    temperature: 0.2,
-                },
-            });
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+            const result = await model.generateContent(prompt);
 
-            let jsonStr = response.text.trim();
+            let jsonStr = getTextFromResponse(result).trim();
             const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
             const match = jsonStr.match(fenceRegex);
             if (match && match[2]) {
@@ -154,8 +166,8 @@ export const getScannerSummary = async (transcriptions: string): Promise<Scanner
     } catch (error) {
         console.error("Error running batch scanner analysis:", error);
         if (error instanceof Error) {
-            if (error.message.includes('API_KEY')) {
-                 throw new Error(`The API Key is invalid or missing permissions. Please check environment configuration.`);
+            if (error.message.includes('API key not valid')) {
+                 throw new Error(`The Gemini API Key is invalid or missing permissions. Please check your .env file and Google AI settings.`);
             }
             throw new Error(`AI service failed: ${error.message}`);
         }
@@ -225,16 +237,10 @@ export const getRssSummary = async (): Promise<RssIncident[]> => {
         Do not include any other text or commentary.`;
 
         try {
-            const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash-preview-04-17",
-                contents: prompt,
-                config: {
-                    responseMimeType: "application/json",
-                    temperature: 0.1,
-                },
-            });
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+            const result = await model.generateContent(prompt);
             
-            let jsonStr = response.text.trim();
+            let jsonStr = getTextFromResponse(result).trim();
             const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
             const match = jsonStr.match(fenceRegex);
             if (match && match[2]) {
@@ -265,8 +271,8 @@ export const getRssSummary = async (): Promise<RssIncident[]> => {
     } catch (error) {
          console.error("Error generating RSS summary:", error);
         if (error instanceof Error) {
-            if (error.message.includes('API_KEY')) {
-                 throw new Error(`The API Key is invalid or missing permissions. Please check environment configuration.`);
+            if (error.message.includes('API key not valid')) {
+                 throw new Error(`The Gemini API Key is invalid or missing permissions. Please check your .env file and Google AI settings.`);
             }
             throw new Error(`AI service failed: ${error.message}`);
         }
@@ -307,22 +313,16 @@ ${rawText}
 `;
 
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-preview-04-17",
-            contents: prompt,
-            config: {
-                temperature: 0.1,
-            },
-        });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        const result = await model.generateContent(prompt);
         
-        // No JSON parsing needed for this function
-        return response.text.trim();
+        return getTextFromResponse(result).trim();
 
     } catch (error) {
         console.error("Error generating transcription:", error);
         if (error instanceof Error) {
-            if (error.message.includes('API_KEY')) {
-                 throw new Error(`The API Key is invalid or missing permissions. Please check environment configuration.`);
+            if (error.message.includes('API key not valid')) {
+                 throw new Error(`The Gemini API Key is invalid or missing permissions. Please check your .env file and Google AI settings.`);
             }
             throw new Error(`AI service failed: ${error.message}`);
         }
